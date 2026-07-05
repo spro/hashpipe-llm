@@ -1,0 +1,22 @@
+{
+  "name": "hashpipe-llm",
+  "version": "0.1.0",
+  "description": "Experimental LLM commands for hashpipe — pipe JSON through AI SDK providers",
+  "main": "index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.js",
+    "test:live": "node test-live.js"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.84",
+    "@ai-sdk/openai": "^3.0.71",
+    "ai": "^6.0.204"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "typescript": "^6.0.3"
+  }
+}
