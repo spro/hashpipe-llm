@@ -5,19 +5,58 @@ pipe JSON through Anthropic or OpenAI models via the AI SDK.
 
 ## Setup
 
-Requires `ANTHROPIC_API_KEY` for Claude models or `OPENAI_API_KEY` for OpenAI
-models.
+This is a hashpipe module — a package whose exports follow the hashpipe
+command signature, loaded into a session with `use`. Any of the routes below
+works; they only differ in where `use` finds the code.
 
-```coffee
-# from npm (resolved via hashpipe's hashpipe-<name> package convention):
-#| use llm
+**Install with npm**, in the directory you run hashpipe from:
 
-# or from a local checkout:
-#| use ./hashpipe-llm
+```sh
+npm install github:spro/hashpipe-llm
 ```
 
-When using a local checkout, run `npm run build` first so the TypeScript source
-is compiled to `dist/`.
+`use <name>` resolves the package `hashpipe-<name>` against the working
+directory's `node_modules`, so after installing:
+
+```coffee
+#| use llm
+```
+
+**Or clone it into the module search path.** `use llm` also looks for a
+module named `llm` in each directory of `HASHPIPE_PATH` (colon-separated)
+and then in `~/.hashpipe/modules/`:
+
+```sh
+git clone https://github.com/spro/hashpipe-llm ~/.hashpipe/modules/llm
+```
+
+**Or point at a checkout directly** with an explicit `./`, `/`, or `~` path:
+
+```coffee
+#| use ~/src/hashpipe-llm
+```
+
+The compiled `dist/` is committed, so a plain clone works with no build step.
+If you change the TypeScript in `src/`, run `npm run build` to recompile.
+
+**API keys.** The commands read `ANTHROPIC_API_KEY` (Claude models) and
+`OPENAI_API_KEY` (OpenAI models) from the environment of the shell that
+launches hashpipe:
+
+```sh
+export ANTHROPIC_API_KEY=sk-ant-...
+hashpipe
+```
+
+**Check the install:**
+
+```coffee
+#| use llm ; which llm
+{ command: 'llm', type: 'module' }
+
+#| llm "say hi in three words"
+'Hi there, friend'
+```
 
 ## Commands
 
