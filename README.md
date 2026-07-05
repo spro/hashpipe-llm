@@ -291,13 +291,9 @@ $q | llm
 The inline input modal and its `herdr input --prompt` CLI are currently only
 in the [spro/herdr](https://github.com/spro/herdr) fork (the `input.prompt`
 socket API); they have not landed in upstream herdr yet. The
-`herdr notification show` half is stock.
-
-Here is the modal a keybinding like that opens — in this shot `prefix+ctrl+f`
-fired an agent-launcher binding whose script prompts for a tab name the same
-way:
-
-![herdr's inline input modal, opened by a prefix+ctrl+f keybinding](docs/herdr-input-modal.png)
+`herdr notification show` half is stock. See
+[herdr-agent-launcher](https://github.com/spro/herdr-agent-launcher) for
+another keybinding built on the same input modal.
 
 ## Notes
 
