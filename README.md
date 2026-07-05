@@ -249,52 +249,6 @@ Environment variables work too:
 LLM_PROVIDER=openai LLM_MODEL=gpt-4.1
 ```
 
-## herdr keybindings
-
-If you run hashpipe inside [herdr](https://herdr.dev), custom keybindings in
-`~/.config/herdr/config.toml` put the llm commands one keypress away. A
-`[[keys.command]]` entry runs its command in a background shell
-(`type = "shell"`) or inside a pane (`type = "pane"`).
-
-Open a REPL with llm preloaded, in a pane — `~/.hashpipe/llm.hp` is just the
-line `use llm`:
-
-```toml
-[[keys.command]]
-key = "prefix+ctrl+p"
-type = "pane"
-command = "hashpipe -l ~/.hashpipe/llm.hp"
-description = "hashpipe repl with llm loaded"
-```
-
-Or ask a question from anywhere: pop herdr's inline input modal, pipe the
-entered text through `llm`, and surface the answer as a notification. With
-`hashpipe -r`, piped stdin becomes the script's initial input, so the
-question travels as data — it is never spliced into the script and its
-quoting can't break anything:
-
-```toml
-[[keys.command]]
-key = "prefix+ctrl+a"
-type = "shell"
-command = '''a=$(herdr input --prompt "ask the llm" | hashpipe -r ~/.hashpipe/ask.hp -p) && herdr notification show llm --body "$a"'''
-description = "ask the llm from anywhere"
-```
-
-```coffee
-# ~/.hashpipe/ask.hp
-$q = $!
-use llm
-$q | llm
-```
-
-The inline input modal and its `herdr input --prompt` CLI are currently only
-in the [spro/herdr](https://github.com/spro/herdr) fork (the `input.prompt`
-socket API); they have not landed in upstream herdr yet. The
-`herdr notification show` half is stock. See
-[herdr-agent-launcher](https://github.com/spro/herdr-agent-launcher) for
-another keybinding built on the same input modal.
-
 ## Notes
 
 - Experimental: command names and behavior may change.
