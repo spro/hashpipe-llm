@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>llm.structured — live workflow examples</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #16223a;
+        --muted: #5e6b85;
+        --paper: #f6f8fc;
+        --card: #ffffff;
+        --line: #dbe2ee;
+        --accent: #2d5bdb;
+        --good: #13775a;
+        --code: #101a2d;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 56px 24px 72px; }
+      header { max-width: 740px; margin-bottom: 38px; }
+      h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.08; letter-spacing: -0.045em; margin: 0 0 16px; }
+      h2 { font-size: 1.45rem; letter-spacing: -0.02em; margin: 0; }
+      p { margin: 0.65rem 0; }
+      .lede { color: var(--muted); font-size: 1.1rem; }
+      .tag, .pass {
+        display: inline-block; border-radius: 999px; padding: 3px 10px;
+        font-size: 0.78rem; font-weight: 700; letter-spacing: 0.025em;
+      }
+      .tag { color: #2447a5; background: #e8efff; }
+      .pass { color: #075b42; background: #ddf6ec; }
+      section {
+        background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+        margin: 22px 0; padding: 28px;
+        box-shadow: 0 8px 24px rgba(31, 51, 90, 0.04);
+      }
+      .section-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+      .label { color: var(--muted); font-size: 0.76rem; font-weight: 750; letter-spacing: 0.09em; text-transform: uppercase; margin: 24px 0 7px; }
+      pre {
+        overflow: auto; margin: 0; padding: 18px; border-radius: 10px;
+        background: var(--code); color: #e9efff; font: 13px/1.55 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        tab-size: 2;
+      }
+      code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+      .validation { border-left: 4px solid var(--good); background: #f0faf6; border-radius: 0 8px 8px 0; margin-top: 20px; padding: 12px 15px; }
+      .validation strong { color: #075b42; }
+      table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+      th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+      th { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+      td:first-child { font-weight: 650; }
+      .note { color: var(--muted); font-size: 0.92rem; }
+      footer { color: var(--muted); font-size: 0.88rem; margin-top: 28px; }
+      @media (max-width: 600px) { main { padding: 34px 16px; } section { padding: 20px; } pre { font-size: 12px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="tag">Captured live runs</span>
+        <h1>Five grounded <code>llm.structured</code> workflows</h1>
+        <p class="lede">Each example combines a typed model response with a deterministic post-check. The first two are focused runs; the next two show multi-stage chains over a real project file and current API data; the final one exercises typed containers and unions.</p>
+      </header>
+
+      <section>
+        <div class="section-top">
+          <h2>1. Extract commands from the project README</h2>
+          <span class="pass">Validation passed</span>
+        </div>
+        <p><strong>In plain English:</strong> give the model the README and ask it to make a trustworthy command list, with a quote from the README proving each entry.</p>
+
+        <div class="label">Hashpipe script</div>
+        <pre><code>files.cat README.md
+| llm.structured {
+    commands: [{
+      name: ["llm", "llm.json", "llm.structured", "llm.models"],
+      purpose: "Concise purpose",
+      evidence: "Exact supporting excerpt from the supplied README"
+    }]
+  } "List every documented package command. Copy its command name exactly
+     and give a short purpose. For each result, include an exact supporting
+     excerpt from the supplied README."</code></pre>
+
+        <div class="label">Live output</div>
+        <pre><code>{
+  "commands": [
+    {
+      "name": "llm",
+      "purpose": "Sends the prompt; any piped input is attached as JSON context. Returns the response text.",
+      "evidence": "**`llm &lt;prompt...&gt;`** — sends the prompt; any piped input is attached as JSON context. Returns the response text."
+    },
+    {
+      "name": "llm.json",
+      "purpose": "Same as `llm`, but the model is instructed to return JSON and the result is parsed, so it pipes like any other hashpipe value.",
+      "evidence": "**`llm.json &lt;prompt...&gt;`** — same, but the model is instructed to return JSON and the result is parsed, so it pipes like any other hashpipe value:"
+    },
+    {
+      "name": "llm.structured",
+      "purpose": "Uses the AI SDK structured output API, returning validated structured output parsed as JSON, optionally constrained by a schema.",
+      "evidence": "**`llm.structured [schema] &lt;prompt...&gt;`** — uses the AI SDK structured output API. Without a schema it behaves like a stricter JSON mode; with a schema it asks the provider for validated structured output and returns the parsed value."
+    },
+    {
+      "name": "llm.models",
+      "purpose": "Lists common model IDs for the supported AI SDK providers.",
+      "evidence": "**`llm.models`** — lists common model ids for the supported AI SDK providers."
+    }
+  ]
+}</code></pre>
+
+        <p class="validation"><strong>Post-check:</strong> every returned command name was in the allowed enum, and every evidence excerpt was found in <code>README.md</code> after normalizing whitespace.</p>
+      </section>
+
+      <section>
+        <div class="section-top">
+          <h2>2. Enrich current Hacker News items</h2>
+          <span class="pass">Validation passed</span>
+        </div>
+        <p><strong>In plain English:</strong> download live Hacker News posts, label what each one is about, and keep the original title, score, and ID unchanged so the result stays connected to the source.</p>
+
+        <div class="label">Complete hashpipe script</div>
+        <pre><code>use http
+
+# Fetch the current top 12 IDs, then request all twelve story objects in parallel.
+$hn = "https://hacker-news.firebaseio.com/v0"
+$ids = http.get $hn/topstories.json @ 0..12
+$stories = $ids || http.get $hn/item/$!.json
+
+$stories
+| llm.structured {
+    stories: [{
+      id: "integer: Copy the input id exactly",
+      title: "Copy the input title exactly",
+      score: "integer: Copy the input score exactly",
+      category: ["technology", "science", "policy", "business", "culture", "other"],
+      rationale: "One short classification rationale based only on the title"
+    }]
+  } "For every supplied Hacker News item, copy id, title, and score exactly.
+     Classify each item from its title only; do not use outside knowledge."</code></pre>
+
+        <div class="label">Fetched API records — 12 live items</div>
+        <pre><code>[
+  { "id": 48849066, "title": "GPT-5.6", "score": 387, "by": "logickkk1" },
+  { "id": 48849059, "title": "ChatGPT Work", "score": 116, "by": "Tiberium" },
+  { "id": 48845049, "title": "Show HN: 18 Words", "score": 586, "by": "pompomsheep" },
+  { "id": 48843923, "title": "EU Parliament greenlights Chat Control 1.0", "score": 568, "by": "rapnie" },
+  { "id": 48847552, "title": "Hy3", "score": 147, "by": "andai" },
+  { "id": 48846281, "title": "No leap second will be introduced at the end of December 2026", "score": 155, "by": "ChrisArchitect" },
+  { "id": 48846184, "title": "Muse Spark 1.1", "score": 210, "by": "ot" },
+  { "id": 48849011, "title": "Wildcard (YC W25) Is Hiring a Founding Engineer", "score": 1, "by": "kaushikmahorker" },
+  { "id": 48847511, "title": "A possible future for Damn Interesting", "score": 90, "by": "mzur" },
+  { "id": 48846995, "title": "TLS certificates for internal services done right", "score": 70, "by": "mrl5" },
+  { "id": 48809574, "title": "Girls Just Wanna Have Fast MPMC Queues with Bounded Waiting", "score": 42, "by": "EvgeniyZh" },
+  { "id": 48847562, "title": "Launch HN: Context.dev (YC S26) – API to get structured data from any website", "score": 36, "by": "TheYahiaBakour" }
+]</code></pre>
+
+        <div class="label">Live structured output — 12 classified items</div>
+        <pre><code>{
+  "stories": [
+    {
+      "id": 48849066,
+      "title": "GPT-5.6",
+      "score": 387,
+      "category": "technology",
+      "rationale": "The title indicates a version of GPT, an AI technology."
+    },
+    {
+      "id": 48849059,
+      "title": "ChatGPT Work",
+      "score": 116,
+      "category": "technology",
+      "rationale": "Mention of ChatGPT relates to AI technology usage."
+    },
+    {
+      "id": 48845049,
+      "title": "Show HN: 18 Words",
+      "score": 586,
+      "category": "other",
+      "rationale": "The title suggests a project or application but no clear category."
+    },
+    {
+      "id": 48843923,
+      "title": "EU Parliament greenlights Chat Control 1.0",
+      "score": 568,
+      "category": "policy",
+      "rationale": "Refers to legislation or regulation by the EU Parliament."
+    },
+    {
+      "id": 48847552,
+      "title": "Hy3",
+      "score": 147,
+      "category": "technology",
+      "rationale": "Short name likely referring to a technology or research project."
+    },
+    {
+      "id": 48846281,
+      "title": "No leap second will be introduced at the end of December 2026",
+      "score": 155,
+      "category": "science",
+      "rationale": "Discusses timekeeping, a scientific topic."
+    },
+    {
+      "id": 48846184,
+      "title": "Muse Spark 1.1",
+      "score": 210,
+      "category": "technology",
+      "rationale": "Presentation of a versioned product or technology."
+    },
+    {
+      "id": 48849011,
+      "title": "Wildcard (YC W25) Is Hiring a Founding Engineer",
+      "score": 1,
+      "category": "business",
+      "rationale": "Hiring announcement related to a startup company."
+    },
+    {
+      "id": 48847511,
+      "title": "A possible future for Damn Interesting",
+      "score": 90,
+      "category": "culture",
+      "rationale": "Suggests discussion on the future of a cultural or content platform."
+    },
+    {
+      "id": 48846995,
+      "title": "TLS certificates for internal services done right",
+      "score": 70,
+      "category": "technology",
+      "rationale": "Technical topic about TLS certificates."
+    },
+    {
+      "id": 48809574,
+      "title": "Girls Just Wanna Have Fast MPMC Queues with Bounded Waiting",
+      "score": 42,
+      "category": "technology",
+      "rationale": "Technical discussion related to computing queues."
+    },
+    {
+      "id": 48847562,
+      "title": "Launch HN: Context.dev (YC S26) – API to get structured data from any website",
+      "score": 36,
+      "category": "technology",
+      "rationale": "Launch of an API product, technology focused."
+    }
+  ]
+}</code></pre>
+
+        <div class="label">Category summary</div>
+        <table>
+          <thead><tr><th>Returned category</th><th>Story count</th></tr></thead>
+          <tbody>
+            <tr><td>technology</td><td>7</td></tr>
+            <tr><td>policy</td><td>1</td></tr>
+            <tr><td>science</td><td>1</td></tr>
+            <tr><td>business</td><td>1</td></tr>
+            <tr><td>culture</td><td>1</td></tr>
+            <tr><td>other</td><td>1</td></tr>
+          </tbody>
+        </table>
+
+        <p class="validation"><strong>Post-check:</strong> the output contained twelve records, and every returned ID/title/score triple exactly matched one of the fetched API records.</p>
+        <p class="note">The ambiguous title “Hy3” is a reminder that a valid enum does not make a classification correct. Add <code>uncertain</code> when downstream routing needs a clear abstention path.</p>
+      </section>
+
+      <section>
+        <div class="section-top">
+          <h2>3. README evidence inventory → learning plan</h2>
+          <span class="pass">2 stages passed</span>
+        </div>
+        <p><strong>In plain English:</strong> first find out what the package can really do from its README; then use only those verified capabilities to create a three-step learning plan.</p>
+
+        <div class="label">Chain script</div>
+        <pre><code>$inventory = files.cat README.md
+| llm.structured {
+    capabilities: [{
+      command: ["llm", "llm.json", "llm.structured", "llm.models"],
+      role: ["freeform_text", "json_parsing", "schema_validated_output", "model_discovery"],
+      evidence: "Exact README excerpt supporting this capability"
+    }]
+  } "Create one capability record for each documented command. Use each role
+     exactly once. Include an exact supporting excerpt."
+
+$inventory
+| llm.structured {
+    lessons: [{
+      sequence: "integer: Lesson number from 1 to 3",
+      focus: ["prompting", "structured_extraction", "model_selection"],
+      primaryCommand: ["llm", "llm.json", "llm.structured", "llm.models"],
+      exercise: "One concise hands-on exercise",
+      expectedOutput: "Expected result shape"
+    }]
+  } "Create a three-lesson progression from the supplied capability inventory.
+     Use only commands represented in the input. Sequence must be 1, 2, 3."</code></pre>
+
+        <div class="label">Stage 1 — live inventory</div>
+        <pre><code>{
+  "capabilities": [
+    {
+      "command": "llm",
+      "role": "freeform_text",
+      "evidence": "**`llm &lt;prompt...&gt;`** — sends the prompt; any piped input is attached as JSON context. Returns the response text."
+    },
+    {
+      "command": "llm.json",
+      "role": "json_parsing",
+      "evidence": "**`llm.json &lt;prompt...&gt;`** — same, but the model is instructed to return JSON and the result is parsed, so it pipes like any other hashpipe value:"
+    },
+    {
+      "command": "llm.structured",
+      "role": "schema_validated_output",
+      "evidence": "**`llm.structured [schema] &lt;prompt...&gt;`** — uses the AI SDK structured output API. Without a schema it behaves like a stricter JSON mode; with a schema it asks the provider for validated structured output and returns the parsed value."
+    },
+    {
+      "command": "llm.models",
+      "role": "model_discovery",
+      "evidence": "**`llm.models`** — lists common model ids for the supported AI SDK providers."
+    }
+  ]
+}</code></pre>
+
+        <div class="label">Stage 2 — live plan</div>
+        <pre><code>{
+  "lessons": [
+    {
+      "sequence": 1,
+      "focus": "prompting",
+      "primaryCommand": "llm",
+      "exercise": "Create a prompt to ask the model about its capabilities and get a descriptive text response.",
+      "expectedOutput": "A plain text string describing the model's capabilities."
+    },
+    {
+      "sequence": 2,
+      "focus": "structured_extraction",
+      "primaryCommand": "llm.structured",
+      "exercise": "Design a prompt with a JSON schema to extract specific fields like 'name' and 'description' from a text about AI models.",
+      "expectedOutput": "A JSON object matching the provided schema with extracted fields."
+    },
+    {
+      "sequence": 3,
+      "focus": "model_selection",
+      "primaryCommand": "llm.models",
+      "exercise": "List available model IDs and select one to use for a subsequent prompt invocation.",
+      "expectedOutput": "An array or list of model ID strings available for use."
+    }
+  ]
+}</code></pre>
+
+        <p class="validation"><strong>Post-check:</strong> all four roles occurred exactly once; each evidence string was found in the README; lesson sequences were exactly 1–3; and each lesson command appeared in the validated stage-one inventory.</p>
+      </section>
+
+      <section>
+        <div class="section-top">
+          <h2>4. HN API intake → thematic editorial digest</h2>
+          <span class="pass">2 stages passed</span>
+        </div>
+        <p><strong>In plain English:</strong> turn a larger batch of live Hacker News posts into a short editor’s briefing: what leads, which ideas connect, and what else deserves attention—without letting the summary invent stories.</p>
+
+        <div class="label">Chain script</div>
+        <pre><code>use http
+
+# Fetch the current top 12 IDs, then request all twelve story objects in parallel.
+$hn = "https://hacker-news.firebaseio.com/v0"
+$ids = http.get $hn/topstories.json @ 0..12
+$source = $ids || http.get $hn/item/$!.json
+
+$intake = $source | llm.structured {
+  stories: [{
+    id: "integer: Copy the input id exactly",
+    title: "Copy the input title exactly",
+    score: "integer: Copy the input score exactly",
+    category: ["technology", "science", "policy", "business", "culture", "other"],
+    rationale: "One short category rationale based only on title"
+  }]
+} "For each item, copy id, title, and score exactly. Categorize from title only."
+
+# The second model call receives only the validated stage-one records.
+$intake @ stories | llm.structured {
+  headline: "Single concise digest headline",
+  featured: {
+    id: "integer: Copy an input id exactly",
+    title: "Copy its input title exactly",
+    angle: "What makes this the lead"
+  },
+  themes: [{
+    label: "Short theme label",
+    storyIds: "integer[]: Input story IDs supporting this theme",
+    summary: "One-sentence synthesis based only on those titles"
+  }],
+  watchlist: [{
+    id: "integer: Copy an input id exactly",
+    title: "Copy its input title exactly",
+    reason: "Why it is worth following"
+  }]
+} "Create an editorial digest from the supplied stories only. Select exactly one
+   featured story, create 2 to 4 themes, and include 3 to 5 different watchlist
+   stories. Copy every returned ID and title exactly; use only input IDs in themes."</code></pre>
+
+        <div class="label">Stage 1 — validated live intake</div>
+        <p class="note">The complete twelve-record intake is shown in example 2 immediately above. The following second stage received that exact output as its input.</p>
+
+        <div class="label">Stage 2 — live editorial digest</div>
+        <pre><code>{
+  "headline": "AI Advances, Regulatory Moves, and Tech Innovations Dominate the Week",
+  "featured": {
+    "id": 48843923,
+    "title": "EU Parliament greenlights Chat Control 1.0",
+    "angle": "High score and significant policy impact regarding AI communication regulation in the EU"
+  },
+  "themes": [
+    {
+      "label": "AI and Emerging Tech",
+      "storyIds": [48849066, 48849059, 48846184, 48847552, 48847562],
+      "summary": "Several updates and launches in AI technology signal rapid developments and new capabilities."
+    },
+    {
+      "label": "Policy and Regulation",
+      "storyIds": [48843923],
+      "summary": "The EU takes a substantial regulatory step with Chat Control 1.0 impacting AI technologies."
+    },
+    {
+      "label": "Science and Technical Advancements",
+      "storyIds": [48846281, 48846995, 48809574],
+      "summary": "From timekeeping to security certificates and computing queues, science and tech continue to evolve."
+    },
+    {
+      "label": "Creative and Cultural Futures",
+      "storyIds": [48847511, 48845049],
+      "summary": "Innovations and future visions in culture and content platforms highlight creativity's ongoing transformation."
+    }
+  ],
+  "watchlist": [
+    {
+      "id": 48849066,
+      "title": "GPT-5.6",
+      "reason": "A significant new version of GPT with potential broad AI implications."
+    },
+    {
+      "id": 48845049,
+      "title": "Show HN: 18 Words",
+      "reason": "Popular new project worth monitoring for community impact and innovation."
+    },
+    {
+      "id": 48846281,
+      "title": "No leap second will be introduced at the end of December 2026",
+      "reason": "Interesting scientific update on timekeeping that could affect various systems."
+    },
+    {
+      "id": 48846184,
+      "title": "Muse Spark 1.1",
+      "reason": "Technology product update reflecting ongoing progress in AI tools."
+    },
+    {
+      "id": 48847562,
+      "title": "Launch HN: Context.dev (YC S26) – API to get structured data from any website",
+      "reason": "New API launch with potential to change how data is extracted from websites."
+    }
+  ]
+}</code></pre>
+
+        <p class="validation"><strong>Post-check:</strong> each stage-one ID/title/score matched the API response. The digest had one featured item, four themes, and five unique watchlist items; every returned ID/title pair and every thematic story ID belonged to the stage-one input.</p>
+        <p class="note">This is the useful division of labor: the model performs semantic categorization and writing, while validation code owns cardinality checks and provenance.</p>
+      </section>
+
+      <section>
+        <div class="section-top">
+          <h2>5. Normalize delivery details with typed containers</h2>
+          <span class="pass">Validation passed</span>
+        </div>
+        <p><strong>In plain English:</strong> copy a small delivery record while constraining an array to allowed labels, preserving a two-dimensional list of numbers, keeping a nested address object, and accepting either kind of reference ID.</p>
+
+        <div class="label">Hashpipe script</div>
+        <pre><code>{recipients: ["to", "cc"], measurements: [[12.5, 8], [3, 4.25]], address: {street: "1 Main St", city: "Boston"}, reference: 4921}
+| llm.structured {
+    recipients: {type: "array", description: "Delivery recipient roles", items: ["to", "cc", "bcc"]},
+    measurements: {type: "array", description: "Rows of numeric measurements", items: {type: "array", items: "number"}},
+    address: {type: "object", fields: {
+      street: "Street address",
+      city: "City"
+    }},
+    reference: {anyOf: ["string", "integer"], description: "Customer or order id"}
+  } "Copy the supplied delivery details exactly"</code></pre>
+
+        <div class="label">Live structured output</div>
+        <pre><code>{
+  "recipients": ["to", "cc"],
+  "measurements": [[12.5, 8], [3, 4.25]],
+  "address": {"street": "1 Main St", "city": "Boston"},
+  "reference": 4921
+}</code></pre>
+
+        <p class="validation"><strong>Post-check:</strong> the live result deep-equaled the supplied record: recipient labels stayed within the enum, every measurement remained numeric, the nested address shape was preserved, and the numeric reference satisfied the union.</p>
+      </section>
+
+      <footer>These are captured outputs from live requests, not fixtures. Structured output enforces shape; deterministic checks enforce provenance and any business rules that the schema cannot express.</footer>
+    </main>
+  </body>
+</html>

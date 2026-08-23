@@ -152,6 +152,81 @@ test("compiles nested objects, arrays, and enums", () => {
     )
 })
 
+test("supports typed containers, enum array items, and unions", () => {
+    assert.deepEqual(
+        compile({
+            matrix: {
+                type: "array",
+                description: "Rows of numeric measurements",
+                items: { type: "array", items: "number" },
+            },
+            recipients: {
+                type: "array",
+                items: ["to", "cc", "bcc"],
+            },
+            address: {
+                type: "object",
+                description: "Shipping address",
+                fields: {
+                    street: "Street address",
+                    city: "City",
+                },
+            },
+            reference: {
+                anyOf: ["string", "integer"],
+                description: "External or internal reference",
+            },
+        }),
+        {
+            type: "object",
+            properties: {
+                matrix: {
+                    type: "array",
+                    description: "Rows of numeric measurements",
+                    items: { type: "array", items: { type: "number" } },
+                },
+                recipients: {
+                    type: "array",
+                    items: {
+                        type: "string",
+                        enum: ["to", "cc", "bcc"],
+                    },
+                },
+                address: {
+                    type: "object",
+                    description: "Shipping address",
+                    properties: {
+                        street: {
+                            type: "string",
+                            description: "Street address",
+                        },
+                        city: { type: "string", description: "City" },
+                    },
+                    required: ["street", "city"],
+                    additionalProperties: false,
+                },
+                reference: {
+                    anyOf: [{ type: "string" }, { type: "integer" }],
+                    description: "External or internal reference",
+                },
+            },
+            required: ["matrix", "recipients", "address", "reference"],
+            additionalProperties: false,
+        },
+    )
+})
+
+test("rejects incomplete typed containers", () => {
+    assert.throws(
+        () => compile({ values: { type: "array" } }),
+        /array fields need an items specification/,
+    )
+    assert.throws(
+        () => compile({ address: { type: "object" } }),
+        /object fields need a fields object/,
+    )
+})
+
 test("strictifies raw JSON schema objects", () => {
     assert.deepEqual(
         compile({

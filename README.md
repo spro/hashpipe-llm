@@ -137,6 +137,28 @@ Nested objects and arrays use normal hashpipe object/array syntax:
 #| | @ tasks
 ```
 
+For typed containers, enum array items, or unions, use an explicit field
+object. `items` accepts the same field forms as a regular field, and `fields`
+contains an object's compact field definitions:
+
+```coffee
+#| {recipients: ["to", "cc"], measurements: [[12.5, 8], [3, 4.25]], address: {street: "1 Main St", city: "Boston"}, reference: 4921}
+#| | llm.structured {
+#|   recipients: {type: "array", description: "Delivery recipient roles", items: ["to", "cc", "bcc"]},
+#|   measurements: {type: "array", description: "Rows of numeric measurements", items: {type: "array", items: "number"}},
+#|   address: {type: "object", fields: {
+#|     street: "Street address",
+#|     city: "City"
+#|   }},
+#|   reference: {anyOf: ["string", "integer"], description: "Customer or order id"}
+#| } "Copy the supplied delivery details exactly"
+```
+
+`type: "array"` requires `items`; `type: "object"` requires `fields`
+(or `properties`). For an array's `items` and an `anyOf` branch, bare scalar
+tokens such as `"number"` mean a type rather than a description. Use
+`"number: description"` when the item needs a description.
+
 You can also pass raw JSON Schema, or a wrapper with output metadata:
 
 ```coffee

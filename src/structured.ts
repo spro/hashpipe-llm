@@ -185,7 +185,7 @@ function compileField(value: unknown): { schema: JSONSchema7; optional: boolean 
     }
 
     if (isPlainObject(value)) {
-        if (typeof value.type === "string") {
+        if (isExplicitField(value)) {
             return compileExplicitField(value)
         }
         return { schema: compileShorthandObject(value), optional: false }
@@ -200,10 +200,57 @@ function compileExplicitField(value: JsonObject): {
     schema: JSONSchema7
     optional: boolean
 } {
-    const typeInfo = parseTypeToken(value.type)
+    const optional = value.optional === true
+    const description =
+        typeof value.description === "string" ? value.description : undefined
+    const variants = value.anyOf ?? value.oneOf
+
+    if (Array.isArray(variants)) {
+        if (!variants.length) {
+            throw new Error("llm.structured: union types must contain at least one variant")
+        }
+        const schema: JSONSchema7 = {
+            anyOf: variants.map(compileComplexMember),
+        }
+        if (description) schema.description = description
+        return { schema, optional }
+    }
+
+    if (Array.isArray(value.enum) && value.type == null) {
+        const schema: JSONSchema7 = {
+            type: enumJsonType(value.enum),
+            enum: value.enum as JSONSchema7["enum"],
+        }
+        if (description) schema.description = description
+        return { schema, optional }
+    }
+
+    if (typeof value.type !== "string") {
+        throw new Error("llm.structured: typed fields need a string type")
+    }
+
+    const typeInfo = parseTypeToken(value.type, true)
     let schema: JSONSchema7
 
-    if (typeInfo.array) {
+    if ((typeInfo.type === "array" || typeInfo.type === "object") && typeInfo.array) {
+        throw new Error("llm.structured: container types cannot use []")
+    }
+
+    if (typeInfo.type === "array") {
+        if (!("items" in value)) {
+            throw new Error("llm.structured: array fields need an items specification")
+        }
+        schema = {
+            type: "array",
+            items: compileArrayItem(value.items),
+        }
+    } else if (typeInfo.type === "object") {
+        const fields = value.fields ?? value.properties
+        if (!isPlainObject(fields)) {
+            throw new Error("llm.structured: object fields need a fields object")
+        }
+        schema = compileShorthandObject(fields)
+    } else if (typeInfo.array) {
         schema = {
             type: "array",
             items: scalarSchema(typeInfo.type),
@@ -212,8 +259,8 @@ function compileExplicitField(value: JsonObject): {
         schema = scalarSchema(typeInfo.type)
     }
 
-    if (typeof value.description === "string") {
-        schema.description = value.description
+    if (description) {
+        schema.description = description
     }
     if (Array.isArray(value.enum)) {
         schema.enum = value.enum as JSONSchema7["enum"]
@@ -221,8 +268,21 @@ function compileExplicitField(value: JsonObject): {
 
     return {
         schema,
-        optional: typeInfo.optional || value.optional === true,
+        optional: typeInfo.optional || optional,
     }
+}
+
+function compileArrayItem(value: unknown): JSONSchema7 {
+    // In a typed array, a bare scalar token means its type. Descriptions still
+    // use the familiar "type: description" form.
+    return compileComplexMember(value)
+}
+
+function compileComplexMember(value: unknown): JSONSchema7 {
+    if (typeof value === "string" && isScalarTypeToken(value)) {
+        return scalarSchema(parseTypeToken(value).type)
+    }
+    return compileField(value).schema
 }
 
 function parseScalarShorthand(value: string): {
@@ -256,7 +316,7 @@ function parseScalarShorthand(value: string): {
     return { schema, optional: optionalSuffix === "?" }
 }
 
-function parseTypeToken(value: unknown): {
+function parseTypeToken(value: unknown, allowContainers = false): {
     type: string
     array: boolean
     optional: boolean
@@ -267,10 +327,20 @@ function parseTypeToken(value: unknown): {
         throw new Error("llm.structured: invalid type " + token)
     }
     const type = normalizeType(match[1])
-    if (!SCALAR_TYPES.has(type)) {
+    const isContainer = type === "array" || type === "object"
+    if (!SCALAR_TYPES.has(type) && !(allowContainers && isContainer)) {
         throw new Error("llm.structured: unsupported type " + match[1])
     }
     return { type, array: match[2] === "[]", optional: match[3] === "?" }
+}
+
+function isScalarTypeToken(value: string): boolean {
+    try {
+        const type = parseTypeToken(value)
+        return !type.array && !type.optional
+    } catch {
+        return false
+    }
 }
 
 function scalarSchema(type: string): JSONSchema7 {
@@ -293,6 +363,15 @@ function normalizeType(type: string): string {
 
 function isArrayType(value: string): boolean {
     return /^[a-zA-Z][a-zA-Z0-9_-]*\[\]\??$/.test(value.trim())
+}
+
+function isExplicitField(value: JsonObject): boolean {
+    return (
+        typeof value.type === "string" ||
+        Array.isArray(value.enum) ||
+        Array.isArray(value.anyOf) ||
+        Array.isArray(value.oneOf)
+    )
 }
 
 function makeNullable(schema: JSONSchema7): JSONSchema7 {
