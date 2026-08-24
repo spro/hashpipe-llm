@@ -379,9 +379,15 @@ function makeNullable(schema: JSONSchema7): JSONSchema7 {
     if (Array.isArray(copy.type)) {
         copy.type = copy.type.includes("null") ? copy.type : [...copy.type, "null"]
     } else if (copy.type != null) {
-        copy.type = [copy.type, "null"]
+        copy.type = copy.type.includes("null")
+            ? copy.type
+            : [copy.type, "null"]
     } else if (copy.anyOf) {
         copy.anyOf = [...copy.anyOf, { type: "null" }]
+    }
+    // A nullable type whose enum lacks null is unsatisfiable.
+    if (Array.isArray(copy.enum) && !copy.enum.includes(null)) {
+        copy.enum = [...copy.enum, null]
     }
     return copy
 }

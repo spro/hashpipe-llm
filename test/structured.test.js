@@ -216,6 +216,23 @@ test("supports typed containers, enum array items, and unions", () => {
     )
 })
 
+test("optional enum fields stay satisfiable when made nullable", () => {
+    assert.deepEqual(
+        compile({ "status?": { type: "string", enum: ["active", "inactive"] } }),
+        {
+            type: "object",
+            properties: {
+                status: {
+                    type: ["string", "null"],
+                    enum: ["active", "inactive", null],
+                },
+            },
+            required: ["status"],
+            additionalProperties: false,
+        },
+    )
+})
+
 test("rejects incomplete typed containers", () => {
     assert.throws(
         () => compile({ values: { type: "array" } }),
