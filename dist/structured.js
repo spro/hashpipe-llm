@@ -324,9 +324,12 @@ function makeStrictSchema(schema) {
     if (!isPlainObject(schema))
         return schema;
     const copy = { ...schema };
-    if (copy.type === "object" || copy.properties != null) {
+    if (includesType(copy, "object") || copy.properties != null) {
         const properties = copy.properties || {};
-        copy.type = "object";
+        copy.type =
+            Array.isArray(copy.type) && copy.type.includes("null")
+                ? ["object", "null"]
+                : "object";
         copy.properties = Object.fromEntries(Object.entries(properties).map(([key, value]) => [
             key,
             makeStrictSchema(value),
@@ -334,11 +337,14 @@ function makeStrictSchema(schema) {
         copy.required = Object.keys(properties);
         copy.additionalProperties = false;
     }
-    if (copy.type === "array" && isPlainObject(copy.items)) {
+    if (includesType(copy, "array") && isPlainObject(copy.items)) {
         copy.items = makeStrictSchema(copy.items);
     }
     if (copy.anyOf) {
         copy.anyOf = copy.anyOf.map((item) => makeStrictSchema(item));
+    }
+    if (copy.oneOf) {
+        copy.oneOf = copy.oneOf.map((item) => makeStrictSchema(item));
     }
     if (copy.$defs && isPlainObject(copy.$defs)) {
         copy.$defs = Object.fromEntries(Object.entries(copy.$defs).map(([key, value]) => [
@@ -347,6 +353,9 @@ function makeStrictSchema(schema) {
         ]));
     }
     return copy;
+}
+function includesType(schema, type) {
+    return schema.type === type || (Array.isArray(schema.type) && schema.type.includes(type));
 }
 function enumJsonType(values) {
     const types = new Set(values.map((value) => typeof value));
@@ -372,5 +381,6 @@ function looksLikeJsonSchema(value) {
         value.properties != null ||
         value.items != null ||
         value.anyOf != null ||
+        value.oneOf != null ||
         value.$defs != null);
 }

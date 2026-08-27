@@ -397,9 +397,12 @@ function makeStrictSchema(schema: JSONSchema7): JSONSchema7 {
 
     const copy: JSONSchema7 = { ...schema }
 
-    if (copy.type === "object" || copy.properties != null) {
+    if (includesType(copy, "object") || copy.properties != null) {
         const properties = copy.properties || {}
-        copy.type = "object"
+        copy.type =
+            Array.isArray(copy.type) && copy.type.includes("null")
+                ? ["object", "null"]
+                : "object"
         copy.properties = Object.fromEntries(
             Object.entries(properties).map(([key, value]) => [
                 key,
@@ -410,12 +413,18 @@ function makeStrictSchema(schema: JSONSchema7): JSONSchema7 {
         copy.additionalProperties = false
     }
 
-    if (copy.type === "array" && isPlainObject(copy.items)) {
+    if (includesType(copy, "array") && isPlainObject(copy.items)) {
         copy.items = makeStrictSchema(copy.items as JSONSchema7)
     }
 
     if (copy.anyOf) {
         copy.anyOf = copy.anyOf.map((item: unknown) =>
+            makeStrictSchema(item as JSONSchema7),
+        )
+    }
+
+    if (copy.oneOf) {
+        copy.oneOf = copy.oneOf.map((item: unknown) =>
             makeStrictSchema(item as JSONSchema7),
         )
     }
@@ -430,6 +439,10 @@ function makeStrictSchema(schema: JSONSchema7): JSONSchema7 {
     }
 
     return copy
+}
+
+function includesType(schema: JSONSchema7, type: string): boolean {
+    return schema.type === type || (Array.isArray(schema.type) && schema.type.includes(type))
 }
 
 function enumJsonType(values: unknown[]): JSONSchema7["type"] {
@@ -462,6 +475,7 @@ function looksLikeJsonSchema(value: JsonObject): boolean {
         value.properties != null ||
         value.items != null ||
         value.anyOf != null ||
+        value.oneOf != null ||
         value.$defs != null
     )
 }

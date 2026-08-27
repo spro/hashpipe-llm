@@ -283,6 +283,52 @@ test("strictifies raw JSON schema objects", () => {
     )
 })
 
+test("strictifies nullable arrays and oneOf branches in raw JSON Schema", () => {
+    assert.deepEqual(
+        compile({
+            type: ["array", "null"],
+            items: {
+                type: "object",
+                properties: { id: { type: "integer" } },
+            },
+        }),
+        {
+            type: ["array", "null"],
+            items: {
+                type: "object",
+                properties: { id: { type: "integer" } },
+                required: ["id"],
+                additionalProperties: false,
+            },
+        },
+    )
+
+    assert.deepEqual(
+        compile({
+            oneOf: [
+                { type: "object", properties: { text: { type: "string" } } },
+                { type: "object", properties: { count: { type: "integer" } } },
+            ],
+        }),
+        {
+            oneOf: [
+                {
+                    type: "object",
+                    properties: { text: { type: "string" } },
+                    required: ["text"],
+                    additionalProperties: false,
+                },
+                {
+                    type: "object",
+                    properties: { count: { type: "integer" } },
+                    required: ["count"],
+                    additionalProperties: false,
+                },
+            ],
+        },
+    )
+})
+
 test("detects schema arguments for llm.structured", () => {
     assert.deepEqual(_internal.splitStructuredArgs([{ name: "A" }, "extract"]), {
         schemaSpec: { name: "A" },
