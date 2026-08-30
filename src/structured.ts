@@ -472,6 +472,7 @@ function isPlainObject(value: unknown): value is JsonObject {
 function looksLikeJsonSchema(value: JsonObject): boolean {
     return (
         typeof value.type === "string" ||
+        Array.isArray(value.type) ||
         value.properties != null ||
         value.items != null ||
         value.anyOf != null ||

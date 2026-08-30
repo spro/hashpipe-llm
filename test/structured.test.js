@@ -283,6 +283,12 @@ test("strictifies raw JSON schema objects", () => {
     )
 })
 
+test("recognizes nullable scalar schemas as raw JSON Schema", () => {
+    assert.deepEqual(compile({ type: ["string", "null"] }), {
+        type: ["string", "null"],
+    })
+})
+
 test("strictifies nullable arrays and oneOf branches in raw JSON Schema", () => {
     assert.deepEqual(
         compile({
